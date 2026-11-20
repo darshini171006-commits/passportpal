@@ -36,3 +36,7 @@ testpaths = ["tests"]
 addopts = "-q"
 # Harmless notice from newer Starlette versions; hide it so real warnings stand out.
 filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`"]
+[tool.poe.tasks]
+test = "pytest"
+lint = "ruff check ."
+format = "ruff format ."
