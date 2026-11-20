@@ -18,6 +18,7 @@ logger = logging.getLogger("passportpal")
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or get_settings()
+
     setup_logging(settings.log_level)
     store = RecordStore(settings.data_file)
 
@@ -28,17 +29,34 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             logger.info("records loaded", extra={"records": count})
         except (OSError, ValueError, json.JSONDecodeError) as exc:
             logger.error("could not load records: %s", exc)
+
         yield
 
-    app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+    app = FastAPI(
+        title=settings.app_name,
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+
     app.state.settings = settings
     app.state.store = store
 
     app.middleware("http")(request_context)
     register_error_handlers(app)
 
+    # Root endpoint for UptimeRobot
+    @app.get("/")
+    async def root():
+        return {
+            "status": "healthy",
+            "message": "PassportPal API is running",
+        }
+
+    # Health and document routes
     v1 = APIRouter(prefix="/v1")
     v1.include_router(documents.router)
+
     app.include_router(health.router)
     app.include_router(v1)
+
     return app
